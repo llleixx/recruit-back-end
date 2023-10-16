@@ -22,7 +22,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
     email: Mapped[str | None] = None
-    passwd: Mapped[str]
+    password: Mapped[str]
     permission: Mapped[int]
 
     problems: Mapped[list[Problem]] = relationship(

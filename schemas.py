@@ -12,13 +12,13 @@ class UserRead(UserBase):
         from_attributes: True
 
 class UserCreate(UserBase):
-    passwd: str
+    password: str
 
 class UserUpdate(BaseModel):
     name: str | None = None
     email: str | None = None
     permission: int | None = None
-    passwd: str | None = None
+    password: str | None = None
 
 
 class ProblemBase(BaseModel):
@@ -42,3 +42,7 @@ class ProblemUpdate(BaseModel):
     description: str | None = None
     answer: str | None = None
     score_initial: int | None = None
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str

@@ -1,4 +1,4 @@
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 from sqlalchemy import create_engine
 
 class Base(DeclarativeBase):
@@ -7,5 +7,4 @@ class Base(DeclarativeBase):
 engine = create_engine(
     "sqlite:///./sql_app.db", connect_args={"check_same_thread": False}
 )
-SessionLocal = sessionmaker(bind=engine)
-
+SessionLocal = sessionmaker(engine)

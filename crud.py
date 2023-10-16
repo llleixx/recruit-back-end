@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from . import models, schemas
+from .security import pwd_context
 
 def get_user(db: Session, id: int):
     return db.get(models.User, id)
@@ -31,8 +32,8 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
     return db_user
 
 def create_user(db: Session, user: schemas.UserCreate):
-    user.passwd = user.passwd
     db_user = models.User(**user.model_dump())
+    db_user.password = pwd_context.hash(db_user.password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
