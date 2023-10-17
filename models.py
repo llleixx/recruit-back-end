@@ -33,6 +33,7 @@ class Problem(Base):
     __tablename__ = "problems"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int]
     name: Mapped[str]
     description: Mapped[str | None] = None
     answer: Mapped[str]

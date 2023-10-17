@@ -3,8 +3,10 @@ from typing import Annotated
 from sqlalchemy.orm import Session
 from .routers import users, problems
 from . import security
-from .dependencies import get_db
-from .crud import create_user
+from .dependencies import SessionLocal
+from . import crud
+from .schemas import UserCreate
+from os import path
 
 app = FastAPI()
 
@@ -13,7 +15,9 @@ app.include_router(problems.router)
 app.include_router(security.router)
 
 @app.on_event("startup")
-async def startup_event(db: Session = Depends(get_db)):
-    create_user(db=db, user={"name": "admin", "password": "123"})
-
+async def startup_event():
+    with SessionLocal() as db:
+        user = crud.get_user(db, 1)
+        if user is None:
+            crud.create_user(db=db, user=UserCreate(name="admin", permission=0, password="123"))
 

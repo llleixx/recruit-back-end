@@ -5,9 +5,10 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt, ExpiredSignatureError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+from sys import stderr
 
 from . import crud
-from .dependencies import get_db
+from .dependencies import SessionLocal
 from .schemas import Token
 
 SECRET_KEY = "28b67870e407fd576bc133670fda5965f6ad1950987c3642650dc28ca7714273"
@@ -18,19 +19,21 @@ router= APIRouter()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-def authenticate_user(account: str, password: str, db: Annotated[Session, Depends(get_db)]):
-    if "@" in account:
-        user = crud.get_user_by_email(db=db, email=account)
-    else:
-        user = crud.get_user_by_name(db=db, name=account)
+def authenticate_user(account: str, password: str):
+    with SessionLocal() as db:
+        if "@" in account:
+            user = crud.get_user_by_email(db=db, email=account)
+        else:
+            user = crud.get_user_by_name(db=db, name=account)
+        
     if user is None:
-        return HTTPException(status_code=404, detail="Account not found")
-    
+        raise HTTPException(status_code=404, detail="Account not found")
+        
     if not verify_password(password, user.password):
         return False
     return user
@@ -46,15 +49,17 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db : Annotated[Session, Depends(get_db)]):
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"}
     )
+    if token is None:
+        return None
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        id: int = payload.get("sub")
+        id: int = int(payload.get("sub"))
         if id is None:
             raise credentials_exception
     except ExpiredSignatureError:
@@ -63,9 +68,11 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db : A
             detail="Expired token",
             headers={"WWW-Authenticate": "Bearer"}
         )
-    except JWTError:
+    except JWTError as e:
+        print(e, file=stderr)
         raise credentials_exception
-    user = crud.get_user(db=db, id = id)
+    with SessionLocal() as db:
+        user = crud.get_user(db=db, id=id)
     if user is None:
         raise credentials_exception
     return user
@@ -84,6 +91,6 @@ async def login_for_access_token(
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.id}, expires_delta=access_token_expires
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
