@@ -62,7 +62,7 @@ MESSAGE = {
     }
 }
 
-@router.post("/token", response_model=security.Token)
+@router.post("/token", response_model=schemas.Token)
 def login_for_access_token(
     form_data: Annotated[security.OAuth2PasswordRequestForm, Depends()],
 ):

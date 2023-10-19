@@ -5,7 +5,7 @@ from sys import stderr
 
 from ..dependencies import get_db
 from .. import crud, schemas, models
-from ..security import get_current_user, get_current_user_loose
+from ..security import get_current_user, get_current_user_loose, get_current_user_strict
 
 router = APIRouter(
     prefix="/users",
@@ -54,34 +54,12 @@ def read_user(user_id: int, db : Annotated[Session, Depends(get_db)]):
     return db_user
 
 @router.put("/{user_id}", response_model=schemas.UserRead)
-def update_user(user_id: int, user: schemas.UserUpdate, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user)], email_token: Annotated[str | None, Header(pattern=r'^\d{6}$', default=None)], email_token1: Annotated[str | None, Header(pattern=r'^\d{6}$', default=None)]):
+def update_user(
+    user_id: int, user: schemas.UserUpdate, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user)], email_token: Annotated[str | None, Header(pattern=r'^\d{6}$')] = None, email_token1: Annotated[str | None, Header(pattern=r'^\d{6}$')] = None
+):
     db_user = crud.get_user(db=db, id=user_id)
-    
-    if user_id == current_user.id:
-        if user.permission:
-            raise permission_exception
-    else:
-        if (db_user.permission <= current_user.permission) or (user.permission and user.permission <= current_user.permission):
-            raise permission_exception
-    
-    if db_user.email and user.email:
-        db_token: models.Confirmation = crud.get_confirmation(db=db, email=db_user.email, option="modify", time_delta=300)
-        db_token1: models.Confirmation = crud.get_confirmation(db=db, email=user.email, option="bind", timedelta=300)
-        if (db_token and db_token.token == email_token) and (db_token1 and db_token1.token == email_token1):
-            pass
-        else:
-            raise email_token_exception
-    
-    if db_user.email is None and user.email:
-        db_token: models.Confirmation = crud.get_confirmation(db=db, email=db_user.email, option="bind", time_delta=300)
-        if db_token.token != email_token:
-            raise email_token_exception
-    
-    if user.password:
-        db_token: models.Confirmation = crud.get_confirmation(db=db, email=user.email, option="modify", time_delta=300)
-        if db_token.token != email_token:
-            raise email_token_exception
-    
+
+    # 重复检测
     if user.name:
         db_user_name: models.User = crud.get_user_by_name(db=db, name=user.name)
         if db_user_name:
@@ -97,7 +75,34 @@ def update_user(user_id: int, user: schemas.UserUpdate, db : Annotated[Session, 
                 status_code=400,
                 detail="User email already exists"
             )
-
+    
+    # 当前用户权限更大
+    if db_user.permission < current_user.permission:
+        return crud.update_user(db=db, user_id=user_id, user=user)
+    
+    # 权限不更大且不是自己则非法
+    if db_user.id != current_user.id:
+        raise permission_exception
+    
+    # 是自己
+    if db_user.email and user.email:
+        db_token: models.Confirmation = crud.get_confirmation(db=db, email=db_user.email, option="MODIFY", time_delta=300)
+        db_token1: models.Confirmation = crud.get_confirmation(db=db, email=user.email, option="BIND", time_delta=300)
+        if (db_token and db_token.token == email_token) and (db_token1 and db_token1.token == email_token1):
+            pass
+        else:
+            raise email_token_exception
+    
+    if db_user.email is None and user.email:
+        db_token: models.Confirmation = crud.get_confirmation(db=db, email=user.email, option="BIND", time_delta=300)
+        if db_token is None or db_token.token != email_token:
+            raise email_token_exception
+    
+    if user.password:
+        db_token: models.Confirmation = crud.get_confirmation(db=db, email=user.email, option="MODIFY", time_delta=300)
+        if db_token is None or db_token.token != email_token:
+            raise email_token_exception
+    
     return crud.update_user(db=db, user_id=user_id, user=user)
 
 @router.delete("/{user_id}")
@@ -112,7 +117,7 @@ def delete_user(user_id: int, db: Annotated[Session, Depends(get_db)], current_u
     crud.delete_user(db, user_id)
 
 @router.post("/{user_id}/problems/{problem_id}")
-def answer_problem(user_id: int, problem_id: int, db: Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user)], answer: Annotated[str, Body(embed=True)]):
+def answer_problem(user_id: int, problem_id: int, db: Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_strict)], answer: Annotated[str, Body(embed=True)]):
     if current_user.id != user_id:
         raise permission_exception
     

@@ -37,7 +37,7 @@ def authenticate_user(account: str, password: str):
     
     if "@" in account and EMAIL_TOKEN_REGEX.match(password):
         with SessionLocal() as db:
-            email_token: models.Confirmation = crud.get_confirmation(db = db, email=account, option="login", time_delta=300)
+            email_token: models.Confirmation = crud.get_confirmation(db = db, email=account, option="LOGIN", time_delta=300)
             if email_token and email_token.token == password:
                 return user
 
@@ -81,6 +81,24 @@ def get_current_user_base(token: str):
         user = crud.get_user(db=db, id=id)
     if user is None:
         raise credentials_exception
+    return user
+
+async def get_current_user_strict(token: Annotated[str, Depends(oauth2_scheme)]):
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user: models.User = get_current_user_base(token)
+
+    if user.email is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="You should bind an email first"
+        )
+    
     return user
 
 async def get_current_user_loose(token: Annotated[str, Depends(oauth2_scheme)]):

@@ -90,7 +90,7 @@ def answer(db: Session, user: models.User, problem: models.Problem):
         user.problems.append(problem)
         db.commit()
     
-def get_rank(db: Session, skip: int = 0, limit=50):
+async def get_rank(db: Session, skip: int = 0, limit=50):
     res = db.execute(
         select(models.User.id, models.User.name, func.sum(models.Problem.score_now).label("total_score")).select_from(models.UserProblemLink).join(models.Problem).join(models.User).group_by(models.UserProblemLink.c.user_id).offset(skip).limit(limit).order_by(desc("total_score"))
     ).all()
@@ -99,11 +99,12 @@ def get_rank(db: Session, skip: int = 0, limit=50):
 
 def get_confirmation(db: Session, email: str, option: str, time_delta: int):
     last_time = datetime.utcnow() - timedelta(seconds=time_delta)
-    return db.scalars(
+    res = db.scalars(
         select(models.Confirmation).where(
             models.Confirmation.create_time > last_time, models.Confirmation.email == email, models.Confirmation.option == option
         ).order_by(models.Confirmation.create_time)
     ).first()
+    return res
 
 def create_confirmation(db: Session, email: str, option: str, token: str):
     db_confirmation = models.Confirmation(email=email, option=option, token=token)
