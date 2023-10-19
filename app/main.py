@@ -1,18 +1,18 @@
 from fastapi import FastAPI, Depends
 from typing import Annotated
 from sqlalchemy.orm import Session
-from .routers import users, problems
+from .routers import users, problems, others
 from . import security
 from .dependencies import SessionLocal
 from . import crud
 from .schemas import UserCreate
-from os import path
 
 app = FastAPI()
 
 app.include_router(users.router)
 app.include_router(problems.router)
 app.include_router(security.router)
+app.include_router(others.router)
 
 @app.on_event("startup")
 async def startup_event():

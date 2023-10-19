@@ -12,6 +12,14 @@ class UserRead(UserBase):
     class Config:
         from_attributes: True
 
+class UserRankRead(BaseModel):
+    id: int
+    name: str
+    total_score: int
+
+    class Config:
+        from_attributes: True
+
 class UserCreate(UserBase):
     password: Annotated[str, Field(pattern=r'^\w{2, 16}$')]
 
@@ -25,7 +33,7 @@ class UserUpdate(BaseModel):
 class ProblemBase(BaseModel):
     name: str
     description: str | None = None
-    answer: str
+    answer: str | None
     score_initial: Annotated[int, Field(default=None, multiple_of=10, ge=10, le=10000)]
 
 class ProblemRead(ProblemBase):
@@ -53,3 +61,7 @@ class ProblemUpdate(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class SendEMailRequest(BaseModel):
+    option: str
+    email: str

@@ -1,7 +1,10 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from sqlalchemy import select
+from sqlalchemy.sql import func, desc
+from datetime import datetime, timedelta
 from . import models, schemas
 from .security import pwd_context
+from sys import stderr
 
 def get_user(db: Session, id: int):
     return db.get(models.User, id)
@@ -66,6 +69,8 @@ def create_problem(db: Session, problem: schemas.ProblemCreate):
 def update_problem(db: Session, problem_id: int,  problem: schemas.ProblemUpdate):
     db_problem = get_problem(db=db, id=problem_id)
     update_problem = problem.model_dump(exclude_unset=True)
+    if problem.score_initial:
+        db_problem.score_now = problem.score_initial * db_problem.score_now / db_problem.score_initial
     for key, val in update_problem.items():
         setattr(db_problem, key, val)
     db.add(db_problem)
@@ -75,4 +80,32 @@ def update_problem(db: Session, problem_id: int,  problem: schemas.ProblemUpdate
 
 def delete_problem(db: Session, id: int):
     db.delete(db.get(models.Problem, id))
+    db.commit()
+
+def answer(db: Session, user: models.User, problem: models.Problem):
+    if problem not in user.problems:
+        if problem.score_now != problem.score_initial / 10:
+            problem.score_now -= problem.score_initial / 10
+        
+        user.problems.append(problem)
+        db.commit()
+    
+def get_rank(db: Session, skip: int = 0, limit=50):
+    res = db.execute(
+        select(models.User.id, models.User.name, func.sum(models.Problem.score_now).label("total_score")).select_from(models.UserProblemLink).join(models.Problem).join(models.User).group_by(models.UserProblemLink.c.user_id).offset(skip).limit(limit).order_by(desc("total_score"))
+    ).all()
+
+    return res
+
+def get_confirmation(db: Session, email: str, option: str, time_delta: int):
+    last_time = datetime.utcnow() - timedelta(seconds=time_delta)
+    return db.scalars(
+        select(models.Confirmation).where(
+            models.Confirmation.create_time > last_time, models.Confirmation.email == email, models.Confirmation.option == option
+        ).order_by(models.Confirmation.create_time)
+    ).first()
+
+def create_confirmation(db: Session, email: str, option: str, token: str):
+    db_confirmation = models.Confirmation(email=email, option=option, token=token)
+    db.merge(db_confirmation)
     db.commit()

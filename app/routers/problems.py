@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Annotated
 
 from ..dependencies import get_db
-from ..security import get_current_user
+from ..security import get_current_user, get_current_user_loose
 from .. import crud, schemas, models
 
 router = APIRouter(
@@ -16,15 +16,8 @@ permission_exception = HTTPException(
     detail="You don't have enough permission"
 )
 
-login_exception = HTTPException(
-    status_code=status.HTTP_403_FORBIDDEN,
-    detail="You must login to finish this operation"
-)
-
 @router.post("/", response_model=schemas.ProblemRead)
 def create_problem(problem: schemas.ProblemCreate, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user)]):
-    if current_user is None:
-        raise login_exception
     if current_user.permission >= 2:
         raise permission_exception
     db_problem = crud.get_problem_by_name(db=db, name=problem.name)
@@ -34,21 +27,24 @@ def create_problem(problem: schemas.ProblemCreate, db : Annotated[Session, Depen
     return crud.create_problem(db=db, problem=problem)
 
 @router.get("/", response_model=list[schemas.ProblemRead])
-def read_problems(*, skip: int = 0, limit: int = 100, db : Annotated[Session, Depends(get_db)]):
-    return crud.get_problems(skip=skip, limit=limit, db=db)
+def read_problems(*, skip: int = 0, limit: int = 100, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_loose)]):
+    problems: list[models.Problem] = crud.get_problems(skip=skip, limit=limit, db=db)
+    if current_user is None or current_user.permission >= 2:
+        for problem in problems:
+            problem.answer = None
+    return problems
 
 @router.get("/{problem_id}", response_model=schemas.ProblemRead)
-def read_problem(problem_id: int, db : Annotated[Session, Depends(get_db)]):
+def read_problem(problem_id: int, db: Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_loose)]):
     db_problem = crud.get_problem(db=db, id=problem_id)
     if db_problem is None:
         raise HTTPException(status_code=404, detail="Problem not found")
+    if current_user is None or current_user.permission >= 2:
+        db_problem.answer = None
     return db_problem
 
 @router.put("/{problem_id}", response_model=schemas.ProblemRead)
 def update_problem(problem_id: int, problem: schemas.ProblemUpdate, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user)]):
-    if current_user is None:
-        raise login_exception
-
     db_problem = crud.get_problem(db=db, id=problem_id)
     if db_problem is None:
         raise HTTPException(status_code=404, detail="Problem not found")
@@ -62,9 +58,6 @@ def update_problem(problem_id: int, problem: schemas.ProblemUpdate, db : Annotat
 
 @router.delete("/{problem_id}")
 def delete_problem(problem_id: int, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user)]):
-    if current_user is None:
-        raise permission_exception
-
     db_problem = crud.get_problem(db=db, id=problem_id)
     if db_problem is None:
         raise HTTPException(status_code=404, detail="Problem not found")

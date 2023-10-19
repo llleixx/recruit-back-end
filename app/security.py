@@ -4,16 +4,17 @@ from fastapi import Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt, ExpiredSignatureError
 from passlib.context import CryptContext
-from sqlalchemy.orm import Session
 from sys import stderr
+import re
 
 from . import crud
 from .dependencies import SessionLocal
-from .schemas import Token
+from . import models
 
-SECRET_KEY = "28b67870e407fd576bc133670fda5965f6ad1950987c3642650dc28ca7714273"
+SECRET_KEY = "28b67870e407fd576bc133670fda5965f6ad1950987c3642650dc28ca7714273" # You should get it by `openssl rand -hex 32`
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+EMAIL_TOKEN_REGEX = re.compile('^\d{6}$')
 
 router= APIRouter()
 
@@ -27,16 +28,23 @@ def verify_password(plain_password, hashed_password):
 def authenticate_user(account: str, password: str):
     with SessionLocal() as db:
         if "@" in account:
-            user = crud.get_user_by_email(db=db, email=account)
+            user: models.User = crud.get_user_by_email(db=db, email=account)
         else:
-            user = crud.get_user_by_name(db=db, name=account)
-        
+            user: models.User = crud.get_user_by_name(db=db, name=account)
+    
     if user is None:
         raise HTTPException(status_code=404, detail="Account not found")
-        
-    if not verify_password(password, user.password):
-        return False
-    return user
+    
+    if "@" in account and EMAIL_TOKEN_REGEX.match(password):
+        with SessionLocal() as db:
+            email_token: models.Confirmation = crud.get_confirmation(db = db, email=account, option="login", time_delta=300)
+            if email_token and email_token.token == password:
+                return user
+
+    if verify_password(password, user.password):
+        return user
+
+    return False
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
@@ -49,14 +57,12 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+def get_current_user_base(token: str):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"}
     )
-    if token is None:
-        return None
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         id: int = int(payload.get("sub"))
@@ -77,20 +83,16 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         raise credentials_exception
     return user
 
-@router.post("/token", response_model=Token)
-async def login_for_access_token(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
-):
-    user = authenticate_user(form_data.username, form_data.password)
-    if not user:
+async def get_current_user_loose(token: Annotated[str, Depends(oauth2_scheme)]):
+    if token is None:
+        return None
+    return get_current_user_base(token)
+
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+    if token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"}
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": str(user.id)}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return get_current_user_base(token)

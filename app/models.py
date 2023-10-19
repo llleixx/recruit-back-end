@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from sqlalchemy import Column
-from sqlalchemy import Table
-from sqlalchemy import ForeignKey
-from sqlalchemy import Integer
+from sqlalchemy import Column, Table, ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 from .database import Base
+from datetime import datetime
 
 UserProblemLink = Table(
     "userproblemlink",
@@ -44,7 +42,11 @@ class Problem(Base):
         secondary=UserProblemLink, back_populates="problems"
     )
 
+class Confirmation(Base):
+    __tablename__ = "confirmations"
+
+    email: Mapped[str] = mapped_column(primary_key=True)
+    option: Mapped[str] = mapped_column(primary_key=True)
+    token: Mapped[str]
+    create_time: Mapped[datetime] = mapped_column(DateTime(), server_default=func.now(), default=func.now(), onupdate=func.now())
     
-
-
-
