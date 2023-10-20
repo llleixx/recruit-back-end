@@ -1,4 +1,4 @@
-from fastapi import Depends, APIRouter, HTTPException, status, Body, Header
+from fastapi import Depends, APIRouter, HTTPException, status, Body, Header, Query, Path
 from sqlalchemy.orm import Session
 from typing import Annotated
 from sys import stderr
@@ -23,13 +23,31 @@ email_token_exception = HTTPException(
 )
 
 @router.get("/rank", response_model=list[schemas.UserRankRead])
-async def get_rank(db: Annotated[Session, Depends(get_db)], skip: int = 0, limit: int = 100):
+async def get_rank(
+    db: Annotated[Session, Depends(get_db)], 
+    skip: Annotated[int, Query(description="the offset")] = 0, 
+    limit: Annotated[int, Query(description="the max number display")] = 100
+):
+    """
+    Get the rank list of users with id, name and total_score.
+    """
     return await crud.get_rank(db=db, skip=skip, limit=limit)
 
 @router.post("/", response_model=schemas.UserRead)
 async def create_user(
     *, user: schemas.UserCreate, db: Annotated[Session, Depends(get_db)], current_user: Annotated[models.User | None, Depends(get_current_user_loose)]
 ):
+    """
+    Create an user.
+
+    If your are loggined and your permission equal to or less than 1, then you have the permission to create a user wiht permission greater than yours.
+
+    Or you can just register a user with permission which equals to 1.
+    
+    - **name**: the user's name, you can login with this
+    - **permission**: 0, 1, 2. The less it is, your permission is greater
+    - **password**: the user's password
+    """
     if current_user is None:
         if user.permission != 2:
             raise permission_exception
@@ -43,11 +61,24 @@ async def create_user(
     return await crud.create_user(db=db, user=user)
 
 @router.get("/", response_model=list[schemas.UserRead])
-async def read_users(*, skip: int = 0, limit: int = 100, db : Annotated[Session, Depends(get_db)]):
+async def read_users(*,
+    skip: Annotated[int, Query(description="the offset")] = 0,
+    limit: Annotated[int, Query(description="the max number display")] = 100,
+    db : Annotated[Session, Depends(get_db)]
+):
+    """
+    Read users' information.
+    """
     return await crud.get_users(db, skip=skip, limit=limit)
 
 @router.get("/{user_id}", response_model=schemas.UserRead)
-async def read_user(user_id: int, db : Annotated[Session, Depends(get_db)]):
+async def read_user(
+    user_id: Annotated[int, Path(description="the user's id you want to read")],
+    db : Annotated[Session, Depends(get_db)]
+):
+    """
+    Read a user with user's id.
+    """
     db_user = await crud.get_user(db=db, id=user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -55,8 +86,15 @@ async def read_user(user_id: int, db : Annotated[Session, Depends(get_db)]):
 
 @router.put("/{user_id}", response_model=schemas.UserRead)
 async def update_user(
-    user_id: int, user: schemas.UserUpdate, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user)], email_token: Annotated[str | None, Header(pattern=r'^\d{6}$')] = None, email_token1: Annotated[str | None, Header(pattern=r'^\d{6}$')] = None
+    user_id: int, user: schemas.UserUpdate, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user)], 
+    email_token: Annotated[str | None, Header(pattern=r'^\d{6}$', description="use the token to modify your password or email")] = None,
+    email_token1: Annotated[str | None, Header(pattern=r'^\d{6}$', description="it is needed when you want to alter your email")] = None
 ):
+    """
+    Update a user's information.
+
+    You need email token as header to modify your sensitive infomation.
+    """
     db_user: models.User = await crud.get_user(db=db, id=user_id)
 
     if db_user is None:
@@ -108,8 +146,20 @@ async def update_user(
     
     return await crud.update_user(db=db, user_id=user_id, user=user)
 
-@router.delete("/{user_id}")
+@router.delete("/{user_id}", responses={
+    "200": {
+        "content": {
+            "application/json": {
+                "example": {"detail": "SUCCESS"}
+            }
+        }}
+})
 async def delete_user(user_id: int, db: Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user)]):
+    """
+    Delete a user.
+
+    Current user's permission should less than the user_id's permission.
+    """
     db_user: models.User = await crud.get_user(db=db, id=user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -119,8 +169,15 @@ async def delete_user(user_id: int, db: Annotated[Session, Depends(get_db)], cur
     
     await crud.delete_user(db, user_id)
 
-@router.post("/{user_id}/problems/{problem_id}")
+    return {"detail": "SUCCESS"}
+
+@router.post("/{user_id}/problems/{problem_id}", response_model=schemas.AnswerProblemResponse)
 async def answer_problem(user_id: int, problem_id: int, db: Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_strict)], answer: Annotated[str, Body(embed=True)]):
+    """
+    Answer a problem.
+
+    The user_id must be your current user's id.
+    """
     if current_user.id != user_id:
         raise permission_exception
     
@@ -133,12 +190,12 @@ async def answer_problem(user_id: int, problem_id: int, db: Annotated[Session, D
             detail="Such problem don't exist"
         )
 
-    response = {"status": ""}
+    response_message: str
     
     if db_problem.answer == answer:
-        response["status"] = "Accepted"
+        response_message = "ACCEPTED"
         await crud.answer(user=db_user, problem=db_problem, db=db)
     else:
-        response["status"] = "Wrong"
+        response_message = "WRONG"
     
-    return response
+    return {"detail": response_message}
