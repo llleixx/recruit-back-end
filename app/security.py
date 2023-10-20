@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt, ExpiredSignatureError
 from passlib.context import CryptContext
+from dotenv import dotenv_values
 from sys import stderr
 import re
 
@@ -11,7 +12,9 @@ from . import crud
 from .dependencies import SessionLocal
 from . import models
 
-SECRET_KEY = "28b67870e407fd576bc133670fda5965f6ad1950987c3642650dc28ca7714273" # You should get it by `openssl rand -hex 32`
+config = dotenv_values(".env")
+
+SECRET_KEY = config["SECRET_KEY"]
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 EMAIL_TOKEN_REGEX = re.compile('^\d{6}$')
