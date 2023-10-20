@@ -17,26 +17,26 @@ permission_exception = HTTPException(
 )
 
 @router.post("/", response_model=schemas.ProblemRead)
-def create_problem(problem: schemas.ProblemCreate, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_strict)]):
+async def create_problem(problem: schemas.ProblemCreate, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_strict)]):
     if current_user.permission >= 2:
         raise permission_exception
-    db_problem = crud.get_problem_by_name(db=db, name=problem.name)
+    db_problem = await crud.get_problem_by_name(db=db, name=problem.name)
     if db_problem:
         raise HTTPException(status_code=400, detail="Problem name already registered")
     problem.owner_id = current_user.id
-    return crud.create_problem(db=db, problem=problem)
+    return await crud.create_problem(db=db, problem=problem)
 
 @router.get("/", response_model=list[schemas.ProblemRead])
-def read_problems(*, skip: int = 0, limit: int = 100, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_loose)]):
-    problems: list[models.Problem] = crud.get_problems(skip=skip, limit=limit, db=db)
+async def read_problems(*, skip: int = 0, limit: int = 100, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_loose)]):
+    problems: list[models.Problem] = await crud.get_problems(skip=skip, limit=limit, db=db)
     if current_user is None or current_user.permission >= 2:
         for problem in problems:
             problem.answer = None
     return problems
 
 @router.get("/{problem_id}", response_model=schemas.ProblemRead)
-def read_problem(problem_id: int, db: Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_loose)]):
-    db_problem = crud.get_problem(db=db, id=problem_id)
+async def read_problem(problem_id: int, db: Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_loose)]):
+    db_problem: models.Problem = await crud.get_problem(db=db, id=problem_id)
     if db_problem is None:
         raise HTTPException(status_code=404, detail="Problem not found")
     if current_user is None or current_user.permission >= 2:
@@ -44,27 +44,27 @@ def read_problem(problem_id: int, db: Annotated[Session, Depends(get_db)], curre
     return db_problem
 
 @router.put("/{problem_id}", response_model=schemas.ProblemRead)
-def update_problem(problem_id: int, problem: schemas.ProblemUpdate, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_strict)]):
-    db_problem = crud.get_problem(db=db, id=problem_id)
+async def update_problem(problem_id: int, problem: schemas.ProblemUpdate, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_strict)]):
+    db_problem: models.Problem = await crud.get_problem(db=db, id=problem_id)
     if db_problem is None:
         raise HTTPException(status_code=404, detail="Problem not found")
     
     if current_user.permission >= 2:
         raise permission_exception
     elif current_user.permission == 1:
-        if db_problem.owner_id != current_user:
+        if db_problem.owner_id != current_user.id:
             raise permission_exception
-    return crud.update_problem(db=db, problem_id=problem_id, problem=problem)
+    return await crud.update_problem(db=db, problem_id=problem_id, problem=problem)
 
 @router.delete("/{problem_id}")
-def delete_problem(problem_id: int, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_strict)]):
-    db_problem = crud.get_problem(db=db, id=problem_id)
+async def delete_problem(problem_id: int, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_strict)]):
+    db_problem: models.Problem = await crud.get_problem(db=db, id=problem_id)
     if db_problem is None:
         raise HTTPException(status_code=404, detail="Problem not found")
     
     if current_user.permission >= 2:
         raise permission_exception
     elif current_user.permission == 1:
-        if db_problem.owner_id != current_user:
+        if db_problem.owner_id != current_user.id:
             raise permission_exception
-    crud.delete_problem(db, problem_id)
+    await crud.delete_problem(db, problem_id)

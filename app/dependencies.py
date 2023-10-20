@@ -1,8 +1,6 @@
 from .database import SessionLocal, engine
 from . import models
 
-models.Base.metadata.create_all(engine)
-
-def get_db():
-    with SessionLocal() as db:
-        yield db
+async def get_db():
+    async with SessionLocal() as session:
+        yield session

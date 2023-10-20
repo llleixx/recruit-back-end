@@ -63,10 +63,10 @@ MESSAGE = {
 }
 
 @router.post("/token", response_model=schemas.Token)
-def login_for_access_token(
+async def login_for_access_token(
     form_data: Annotated[security.OAuth2PasswordRequestForm, Depends()],
 ):
-    user = security.authenticate_user(form_data.username, form_data.password)
+    user = await security.authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -88,14 +88,14 @@ async def send_email(*, sendEmailRequest: schemas.SendEMailRequest, db: Annotate
             detail="sendEmail don't have such operation"
         )
     
-    if crud.get_confirmation(db=db, **sendEmailRequest.model_dump(), time_delta=60):
+    if await crud.get_confirmation(db=db, **sendEmailRequest.model_dump(), time_delta=60):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You have snet such email, please wait."
         )
 
     token: str = ''.join(random.choices(string.digits, k=6))
-    crud.create_confirmation(db=db, **sendEmailRequest.model_dump(), token=token)
+    await crud.create_confirmation(db=db, **sendEmailRequest.model_dump(), token=token)
 
     try:
         await send_email_base(to_users=sendEmailRequest.email, subject=MESSAGE[sendEmailRequest.option]["subject"], content=MESSAGE[sendEmailRequest.option]["content"].format(token))
@@ -103,11 +103,11 @@ async def send_email(*, sendEmailRequest: schemas.SendEMailRequest, db: Annotate
         print(e, file=stderr)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Can't send email"
+            detail=f"Can't send email because: {e}"
         )
 
     return {"detail": "Success"}
 
 @router.get("/me", response_model=schemas.UserRead)
-def get_me(current_user: Annotated[models.User, Depends(get_current_user)]):
+async def get_me(current_user: Annotated[models.User, Depends(get_current_user)]):
     return current_user

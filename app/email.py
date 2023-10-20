@@ -1,4 +1,4 @@
-import smtplib, ssl
+import aiosmtplib, ssl
 from email.message import EmailMessage
 from dotenv import dotenv_values
 from sys import stderr
@@ -23,9 +23,6 @@ async def send_email_base(to_users, subject='', content=''):
 
     message.set_content(content, 'html')
 
-
-    context = ssl.create_default_context()
-    with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
-        server.starttls(context=context)
-        server.login(EMAIL_USER, EMAIL_AUTH)
-        server.send_message(message)
+    async with aiosmtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
+        await server.login(EMAIL_USER, EMAIL_AUTH)
+        await server.send_message(message)

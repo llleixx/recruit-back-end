@@ -25,19 +25,19 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-def authenticate_user(account: str, password: str):
-    with SessionLocal() as db:
+async def authenticate_user(account: str, password: str):
+    async with SessionLocal() as db:
         if "@" in account:
-            user: models.User = crud.get_user_by_email(db=db, email=account)
+            user: models.User = await crud.get_user_by_email(db=db, email=account)
         else:
-            user: models.User = crud.get_user_by_name(db=db, name=account)
+            user: models.User = await crud.get_user_by_name(db=db, name=account)
     
     if user is None:
         raise HTTPException(status_code=404, detail="Account not found")
     
     if "@" in account and EMAIL_TOKEN_REGEX.match(password):
-        with SessionLocal() as db:
-            email_token: models.Confirmation = crud.get_confirmation(db = db, email=account, option="LOGIN", time_delta=300)
+        async with SessionLocal() as db:
+            email_token: models.Confirmation = await crud.get_confirmation(db = db, email=account, option="LOGIN", time_delta=300)
             if email_token and email_token.token == password:
                 return user
 
@@ -57,7 +57,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def get_current_user_base(token: str):
+async def get_current_user_base(token: str):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -77,8 +77,8 @@ def get_current_user_base(token: str):
     except JWTError as e:
         print(e, file=stderr)
         raise credentials_exception
-    with SessionLocal() as db:
-        user = crud.get_user(db=db, id=id)
+    async with SessionLocal() as db:
+        user = await crud.get_user(db=db, id=id)
     if user is None:
         raise credentials_exception
     return user
@@ -91,7 +91,7 @@ async def get_current_user_strict(token: Annotated[str, Depends(oauth2_scheme)])
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    user: models.User = get_current_user_base(token)
+    user: models.User = await get_current_user_base(token)
 
     if user.email is None:
         raise HTTPException(
@@ -104,7 +104,7 @@ async def get_current_user_strict(token: Annotated[str, Depends(oauth2_scheme)])
 async def get_current_user_loose(token: Annotated[str, Depends(oauth2_scheme)]):
     if token is None:
         return None
-    return get_current_user_base(token)
+    return await get_current_user_base(token)
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     if token is None:
@@ -113,4 +113,4 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return get_current_user_base(token)
+    return await get_current_user_base(token)
