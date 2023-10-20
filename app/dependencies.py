@@ -1,5 +1,4 @@
-from .database import SessionLocal, engine
-from . import models
+from .database import SessionLocal
 
 async def get_db():
     async with SessionLocal() as session:

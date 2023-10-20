@@ -1,10 +1,18 @@
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncAttrs, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncAttrs, async_sessionmaker
+from dotenv import dotenv_values
 
 class Base(AsyncAttrs, DeclarativeBase):
     pass
 
+config = dotenv_values(".env")
+MYSQL_USER = config["MYSQL_USER"]
+MYSQL_PASSWORD = config["MYSQL_PASSWORD"]
+MYSQL_HOST = config["MYSQL_HOST"]
+MYSQL_PORT = config["MYSQL_PORT"]
+MYSQL_DBNAME = config["MYSQL_DBNAME"]
+
 engine = create_async_engine(
-    "sqlite+aiosqlite:///./sql_app.db", connect_args={"check_same_thread": False}, 
+    f"mysql+aiomysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DBNAME}"
 )
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)

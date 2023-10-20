@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from sqlalchemy import Column, Table, ForeignKey, DateTime, func
+from sqlalchemy import Column, Table, ForeignKey, DateTime, func, String
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 from .database import Base
+from typing import Annotated
 from datetime import datetime
 
 UserProblemLink = Table(
@@ -18,9 +19,9 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str]
-    email: Mapped[str | None] = None
-    password: Mapped[str]
+    name: Mapped[str] = mapped_column(String(16))
+    email: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    password: Mapped[str] = mapped_column(String(60))
     permission: Mapped[int]
 
     problems: Mapped[list[Problem]] = relationship(
@@ -32,9 +33,9 @@ class Problem(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     owner_id: Mapped[int]
-    name: Mapped[str]
-    description: Mapped[str | None] = None
-    answer: Mapped[str]
+    name: Mapped[str] = mapped_column(String(30))
+    description: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    answer: Mapped[str] = mapped_column(String(2000))
     score_initial: Mapped[int]
     score_now: Mapped[int]
 
@@ -45,8 +46,8 @@ class Problem(Base):
 class Confirmation(Base):
     __tablename__ = "confirmations"
 
-    email: Mapped[str] = mapped_column(primary_key=True)
-    option: Mapped[str] = mapped_column(primary_key=True)
-    token: Mapped[str]
+    email: Mapped[str] = mapped_column(String(30), primary_key=True)
+    option: Mapped[str] = mapped_column(String(10), primary_key=True)
+    token: Mapped[str] = mapped_column(String(6))
     create_time: Mapped[datetime] = mapped_column(DateTime(), server_default=func.now(), default=func.now(), onupdate=func.now())
     

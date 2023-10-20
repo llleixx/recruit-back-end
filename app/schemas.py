@@ -24,7 +24,7 @@ class UserCreate(UserBase):
     password: Annotated[str, Field(pattern=r'^\w{2, 16}$')]
 
 class UserUpdate(BaseModel):
-    name: str | None = Field(pattern=r'^\w{2, 8}$', default=None)
+    name: str | None = Field(pattern=r'^\w{2, 16}$', default=None)
     email: str | None = Field(pattern=r'^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$', default=None)
     permission: int | None = Field(ge=0, le=2, default=None)
     password: str | None = Field(pattern=r'^\w{2, 16}$', default=None)
