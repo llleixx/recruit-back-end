@@ -67,8 +67,8 @@ jobs:
           REMOTE_USER: lllei
           SOURCE: 'app/'
           ARGS: "-rlgoDzvc -i --delete"
-          TARGET: ${{ secrets.REMOTE_TARGET }}
+          TARGET: /home/lllei/ws/recruit/app/
           SCRIPT_BEFORE: |
-            run ${{ secrets.REMOTE_TARGET }}/script_before.sh
+            run /home/lllei/ws/recruit/script_before.sh
           SCRIPT_AFTER: |
-            run ${{ secrets.REMOTE_TARGET }}/script_after.sh
+            run /home/lllei/ws/recruit/script_after.sh
