@@ -39,3 +39,36 @@ jobs:
       
       - name: run test
         run: pytest
+      
+  merge_and_deploy:
+    if: ${{ success() }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: merge
+        run: |
+          git config user.name lllei
+          git config user.email llleigoing@outlook.com
+          git checkout main
+          git merge dev
+          git push
+      
+      - name: depoly
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_HOST: lllei.top
+          REMOTE_USER: lllei
+          SOURCE: 'app/'
+          ARGS: "-rlgoDzvc -i --delete"
+          TARGET: ${{ secrets.REMOTE_TARGET }}
+          SCRIPT_BEFORE: |
+            run ${{ secrets.REMOTE_TARGET }}/script_before.sh
+          SCRIPT_AFTER: |
+            run ${{ secrets.REMOTE_TARGET }}/script_after.sh
