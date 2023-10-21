@@ -109,6 +109,8 @@ async def send_email(sendEmailRequest: schemas.SendEMailRequest, db: Annotated[S
             detail="You have snet such email, please wait."
         )
 
+    token: str = ''.join(random.choices(string.digits, k=6))
+
     try:
         await send_email_base(to_users=sendEmailRequest.email, subject=MESSAGE[sendEmailRequest.option.value]["subject"], content=MESSAGE[sendEmailRequest.option.value]["content"].format(token))
     except Exception as e:
@@ -118,11 +120,10 @@ async def send_email(sendEmailRequest: schemas.SendEMailRequest, db: Annotated[S
             detail=f"Can't send email because: {e}"
         )
 
-    token: str = ''.join(random.choices(string.digits, k=6))
     await crud.create_confirmation(db=db, email=sendEmailRequest.email, option=sendEmailRequest.option.value, token=token)
 
 
-    return {"detail": "Success"}
+    return {"detail": "SUCCESS"}
 
 @router.get("/me", response_model=schemas.UserRead)
 async def get_me(current_user: Annotated[models.User, Depends(get_current_user)]):

@@ -10,7 +10,7 @@ class UserRead(UserBase):
     id: int
     email: str | None
 
-    class Config:
+    class ConfigDict:
         from_attributes: True
 
 class UserRankRead(BaseModel):
@@ -18,7 +18,7 @@ class UserRankRead(BaseModel):
     name: str
     total_score: int
 
-    class Config:
+    class ConfigDict:
         from_attributes: True
 
 class UserCreate(UserBase):
@@ -42,7 +42,7 @@ class ProblemRead(ProblemBase):
     owner_id: int
     score_now: int
 
-    class Config:
+    class ConfigDict:
         from_attributes: True
 
 class ProblemCreate(ProblemBase):

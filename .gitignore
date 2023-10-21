@@ -3,3 +3,4 @@ Lib/
 include/
 pyvenv.cfg
 Scripts/
+.pytest_cache/

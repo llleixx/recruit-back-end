@@ -7,17 +7,21 @@ from passlib.context import CryptContext
 from dotenv import dotenv_values
 from sys import stderr
 import re
+import os
 
 from . import crud
 from .dependencies import SessionLocal
 from . import models
 
-config = dotenv_values(".env")
+config = {
+    **dotenv_values(".env"),
+    **os.environ
+}
 
 SECRET_KEY = config["SECRET_KEY"]
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-EMAIL_TOKEN_REGEX = re.compile('^\d{6}$')
+EMAIL_TOKEN_REGEX = re.compile(r'^\d{6}$')
 
 router= APIRouter()
 

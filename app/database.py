@@ -1,11 +1,15 @@
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncAttrs, async_sessionmaker
 from dotenv import dotenv_values
+import os
 
 class Base(AsyncAttrs, DeclarativeBase):
     pass
 
-config = dotenv_values(".env")
+config = {
+    **dotenv_values(".env"),
+    **os.environ
+}
 MYSQL_USER = config["MYSQL_USER"]
 MYSQL_PASSWORD = config["MYSQL_PASSWORD"]
 MYSQL_HOST = config["MYSQL_HOST"]

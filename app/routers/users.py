@@ -35,7 +35,7 @@ async def get_rank(
 
 @router.post("/", response_model=schemas.UserRead)
 async def create_user(
-    *, user: schemas.UserCreate, db: Annotated[Session, Depends(get_db)], current_user: Annotated[models.User | None, Depends(get_current_user_loose)]
+    *, user: schemas.UserCreate, db: Annotated[Session, Depends(get_db)], current_user: Annotated[models.User | None, Depends(get_current_user_strict)]
 ):
     """
     Create an user.

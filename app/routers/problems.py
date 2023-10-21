@@ -89,6 +89,7 @@ async def update_problem(problem_id: int, problem: schemas.ProblemUpdate, db : A
             }
         }}
 })
+
 async def delete_problem(problem_id: int, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_strict)]):
     """
     Delete a problem by problem's id.
