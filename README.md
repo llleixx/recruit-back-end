@@ -86,7 +86,7 @@ If a user or problem is deleted, the table is also affected.
 Field|Type|Null|Key|Default|Extra
 -|-|-|-|-|-
 email|varchar(30)|NO|PRI|NULL|
-option|varchar(10)|PRI|NULL|
+option|varchar(10)|NO|PRI|NULL|
 token|varchar(6)|NO||NULL
 create_time|datetime|NO||CURRENT_TIMESTAMP|DEFAULT_GENERATED
 

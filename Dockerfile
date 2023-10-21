@@ -8,8 +8,7 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 EXPOSE 8000
 
-ENV MYSQL_USER='root' MYSQL_PASSWORD='abcd' \
-    MYSQL_HOST='172.17.0.1'
+COPY ./.env /code/.env
 
 COPY ./app /code/app
 
