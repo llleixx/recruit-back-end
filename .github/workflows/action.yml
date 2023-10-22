@@ -42,7 +42,6 @@ jobs:
       
   merge_and_deploy:
     needs: test
-    if: ${{ success() }}
     permissions:
       contents: write
     runs-on: ubuntu-latest
