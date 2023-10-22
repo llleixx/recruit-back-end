@@ -6,18 +6,19 @@ from ..dependencies import get_db
 from ..security import get_current_user_strict, get_current_user_loose
 from .. import crud, schemas, models
 
-router = APIRouter(
-    prefix="/problems",
-    tags=["problems"]
-)
+router = APIRouter(prefix="/problems", tags=["problems"])
 
 permission_exception = HTTPException(
-    status_code=status.HTTP_403_FORBIDDEN,
-    detail="You don't have enough permission"
+    status_code=status.HTTP_403_FORBIDDEN, detail="You don't have enough permission"
 )
 
+
 @router.post("/", response_model=schemas.ProblemRead)
-async def create_problem(problem: schemas.ProblemCreate, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_strict)]):
+async def create_problem(
+    problem: schemas.ProblemCreate,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.User, Depends(get_current_user_strict)],
+):
     """
     Create a problem.
 
@@ -35,19 +36,33 @@ async def create_problem(problem: schemas.ProblemCreate, db : Annotated[Session,
     problem.owner_id = current_user.id
     return await crud.create_problem(db=db, problem=problem)
 
+
 @router.get("/", response_model=list[schemas.ProblemRead])
-async def read_problems(*, skip: int = 0, limit: int = 100, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_loose)]):
+async def read_problems(
+    *,
+    skip: int = 0,
+    limit: int = 100,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.User, Depends(get_current_user_loose)]
+):
     """
     Read problems with offset and limit.
     """
-    problems: list[models.Problem] = await crud.get_problems(skip=skip, limit=limit, db=db)
+    problems: list[models.Problem] = await crud.get_problems(
+        skip=skip, limit=limit, db=db
+    )
     if current_user is None or current_user.permission >= 2:
         for problem in problems:
             problem.answer = None
     return problems
 
+
 @router.get("/{problem_id}", response_model=schemas.ProblemRead)
-async def read_problem(problem_id: int, db: Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_loose)]):
+async def read_problem(
+    problem_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.User, Depends(get_current_user_loose)],
+):
     """
     Read a problem with problem's id.
     """
@@ -58,8 +73,14 @@ async def read_problem(problem_id: int, db: Annotated[Session, Depends(get_db)],
         db_problem.answer = None
     return db_problem
 
+
 @router.put("/{problem_id}", response_model=schemas.ProblemRead)
-async def update_problem(problem_id: int, problem: schemas.ProblemUpdate, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_strict)]):
+async def update_problem(
+    problem_id: int,
+    problem: schemas.ProblemUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.User, Depends(get_current_user_strict)],
+):
     """
     Modify a problem.
 
@@ -73,7 +94,7 @@ async def update_problem(problem_id: int, problem: schemas.ProblemUpdate, db : A
     db_problem: models.Problem = await crud.get_problem(db=db, id=problem_id)
     if db_problem is None:
         raise HTTPException(status_code=404, detail="Problem not found")
-    
+
     if current_user.permission >= 2:
         raise permission_exception
     elif current_user.permission == 1:
@@ -81,16 +102,18 @@ async def update_problem(problem_id: int, problem: schemas.ProblemUpdate, db : A
             raise permission_exception
     return await crud.update_problem(db=db, problem_id=problem_id, problem=problem)
 
-@router.delete("/{problem_id}", responses={
-    "200": {
-        "content": {
-            "application/json": {
-                "example": {"detail": "SUCCESS"}
-            }
-        }}
-})
 
-async def delete_problem(problem_id: int, db : Annotated[Session, Depends(get_db)], current_user: Annotated[models.User, Depends(get_current_user_strict)]):
+@router.delete(
+    "/{problem_id}",
+    responses={
+        "200": {"content": {"application/json": {"example": {"detail": "SUCCESS"}}}}
+    },
+)
+async def delete_problem(
+    problem_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.User, Depends(get_current_user_strict)],
+):
     """
     Delete a problem by problem's id.
 
@@ -99,7 +122,7 @@ async def delete_problem(problem_id: int, db : Annotated[Session, Depends(get_db
     db_problem: models.Problem = await crud.get_problem(db=db, id=problem_id)
     if db_problem is None:
         raise HTTPException(status_code=404, detail="Problem not found")
-    
+
     if current_user.permission >= 2:
         raise permission_exception
     elif current_user.permission == 1:

@@ -5,15 +5,15 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 from .database import Base
-from typing import Annotated
 from datetime import datetime
 
 UserProblemLink = Table(
     "userproblemlink",
     Base.metadata,
     Column("user_id", ForeignKey("users.id"), primary_key=True),
-    Column("problem_id", ForeignKey("problems.id"), primary_key=True)
+    Column("problem_id", ForeignKey("problems.id"), primary_key=True),
 )
+
 
 class User(Base):
     __tablename__ = "users"
@@ -27,6 +27,7 @@ class User(Base):
     problems: Mapped[list[Problem]] = relationship(
         secondary=UserProblemLink, back_populates="users"
     )
+
 
 class Problem(Base):
     __tablename__ = "problems"
@@ -43,11 +44,13 @@ class Problem(Base):
         secondary=UserProblemLink, back_populates="problems"
     )
 
+
 class Confirmation(Base):
     __tablename__ = "confirmations"
 
     email: Mapped[str] = mapped_column(String(30), primary_key=True)
     option: Mapped[str] = mapped_column(String(10), primary_key=True)
     token: Mapped[str] = mapped_column(String(6))
-    create_time: Mapped[datetime] = mapped_column(DateTime(), server_default=func.now(), default=func.now(), onupdate=func.now())
-    
+    create_time: Mapped[datetime] = mapped_column(
+        DateTime(), server_default=func.now(), default=func.now(), onupdate=func.now()
+    )
