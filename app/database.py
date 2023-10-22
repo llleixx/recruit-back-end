@@ -3,13 +3,12 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncAttrs, async_sessio
 from dotenv import dotenv_values
 import os
 
+
 class Base(AsyncAttrs, DeclarativeBase):
     pass
 
-config = {
-    **dotenv_values(".env"),
-    **os.environ
-}
+
+config = {**dotenv_values(".env"), **os.environ}
 MYSQL_USER = config["MYSQL_USER"]
 MYSQL_PASSWORD = config["MYSQL_PASSWORD"]
 MYSQL_HOST = config["MYSQL_HOST"]
