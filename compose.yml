@@ -6,8 +6,10 @@ services:
     volumes:
       - db-recruit:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
-      - MYSQL_DATABASE: ${MYSQL_DBNAME}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DBNAME}
+    networks:
+      - recruit-net
   
   recruit:
     build: .
@@ -18,7 +20,12 @@ services:
       .env
     depends_on:
       - db
+    networks:
+      - recruit-net
 
 volumes:
   db-recruit:
+
+networks:
+  recruit-net:
   

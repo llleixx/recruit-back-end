@@ -66,6 +66,10 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           REMOTE_HOST: lllei.top
           REMOTE_USER: lllei
-          SOURCE: 'app'
+          SOURCE: 'app requirements.txt'
           ARGS: "-rlgoDzvc -i --delete"
           TARGET: ${{ secrets.REMOTE_TARGET }}
+          SCRIPT_AFTER: |
+            cd ${{ secrets.REMOTE_TARGET }} 
+            docker compose build recruit
+            docker compose up --no-deps -d recruit
