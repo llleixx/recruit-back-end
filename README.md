@@ -66,7 +66,7 @@ score_now|int|NO||NULL|
 
 `score_initial` should be greater than or equals to 10, and should be multiple of 10.
 
-`score_now` initially equals to `score_initial`. If a person answre a question, it's score will decrease $\drac{1}{10}$ of `score_initial`. Its minimum is $\dfrac{1}{10}$ of `score_initial`.
+`score_now` initially equals to `score_initial`. If a person answre a question, it's score will decrease $\dfrac{1}{10}$ of `score_initial`. Its minimum is $\dfrac{1}{10}$ of `score_initial`.
 
 ### userproblemlink
 
