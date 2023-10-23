@@ -30,9 +30,6 @@ async def create_problem(
     """
     if current_user.permission >= 2:
         raise permission_exception
-    db_problem = await crud.get_problem_by_name(db=db, name=problem.name)
-    if db_problem:
-        raise HTTPException(status_code=400, detail="Problem name already registered")
     problem.owner_id = current_user.id
     return await crud.create_problem(db=db, problem=problem)
 
