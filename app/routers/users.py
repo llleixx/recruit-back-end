@@ -119,19 +119,6 @@ async def update_user(
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # 重复检测
-    if user.name:
-        db_user_name: models.User = await crud.get_user_by_name(db=db, name=user.name)
-        if db_user_name:
-            raise HTTPException(status_code=400, detail="Username already exists")
-
-    if user.email:
-        db_user_email: models.User = await crud.get_user_by_email(
-            db=db, email=user.email
-        )
-        if db_user_email:
-            raise HTTPException(status_code=400, detail="User email already exists")
-
     # 当前用户权限更大
     if db_user.permission > current_user.permission:
         return await crud.update_user(db=db, user_id=user_id, user=user)

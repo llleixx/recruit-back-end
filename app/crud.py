@@ -1,7 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, exc
 from sqlalchemy.sql import func, desc
 from datetime import datetime, timedelta
+from fastapi import HTTPException
 from . import models, schemas
 from .security import pwd_context
 
@@ -32,16 +33,21 @@ async def update_user(db: AsyncSession, user_id: int, user: schemas.UserUpdate):
     for key, val in update_user.items():
         setattr(db_user, key, val)
     await db.commit()
-    await db.refresh(db_user)
     return db_user
 
 
 async def create_user(db: AsyncSession, user: schemas.UserCreate):
     db_user = models.User(**user.model_dump())
     db_user.password = pwd_context.hash(db_user.password)
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
+    try:
+        db.add(db_user)
+        await db.commit()
+    except exc.IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="name or email already exists"
+        )
     return db_user
 
 
@@ -68,7 +74,6 @@ async def create_problem(db: AsyncSession, problem: schemas.ProblemCreate):
     db_problem = models.Problem(**problem.model_dump(), score_now=problem.score_initial)
     db.add(db_problem)
     await db.commit()
-    await db.refresh(db_problem)
     return db_problem
 
 
@@ -83,8 +88,14 @@ async def update_problem(
         )
     for key, val in update_problem.items():
         setattr(db_problem, key, val)
-    await db.commit()
-    await db.refresh(db_problem)
+    try:
+        await db.commit()
+    except exc.IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="name or email already exists"
+        )
     return db_problem
 
 

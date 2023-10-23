@@ -19,8 +19,8 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(16))
-    email: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    name: Mapped[str] = mapped_column(String(16), unique=True)
+    email: Mapped[str | None] = mapped_column(String(30), nullable=True, unique=True)
     password: Mapped[str] = mapped_column(String(60))
     permission: Mapped[int]
 
