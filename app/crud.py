@@ -84,7 +84,7 @@ async def update_problem(
     update_problem = problem.model_dump(exclude_unset=True)
     if problem.score_initial:
         db_problem.score_now = (
-            problem.score_initial * db_problem.score_now / db_problem.score_initial
+            problem.score_initial * models.Problem.score_now / models.Problem.score_initial
         )
     for key, val in update_problem.items():
         setattr(db_problem, key, val)
@@ -107,7 +107,7 @@ async def delete_problem(db: AsyncSession, id: int):
 async def answer(db: AsyncSession, user: models.User, problem: models.Problem):
     if problem not in await user.awaitable_attrs.problems:
         if problem.score_now != problem.score_initial / 10:
-            problem.score_now -= problem.score_initial / 10
+            problem.score_now = models.Problem.score_now - models.Problem.score_initial / 10
 
         user.problems.append(problem)
         await db.commit()
