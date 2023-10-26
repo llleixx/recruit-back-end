@@ -12,7 +12,7 @@ Run this project:
 
 2. modify `.env` file
 
-    You need to use your own `SECRET_KEY` and own `EMAIL`
+    You need to at least modify the `EMAIL`, `MYSQL` and `SECRET_KEY`
 
 3. create your database
 
@@ -38,13 +38,17 @@ Run this project:
 
 1. modify `.env` file
 
-    You need to use your own `SECRET_KEY` and own `EMAIL`
+    You need to at least modify the `EMAIL`, `SECRET_KEY`.
+
+    Settings about `MYSQL` are already in `compose.yml`.
 
 2. run docker
 
     ```
     docker compose up -d
     ```
+
+docker will use `127.0.0.1:8000` as the default `url`， you can change it in `compose.yml`
 
 ## Database
 
@@ -74,7 +78,7 @@ answer|varchar(2000)|NO||NULL|
 score_initial|int|NO||NULL|
 score_now|int|NO||NULL|
 
-`description` can be `Nullullullullullullullullull`.
+`description` can be `Null`.
 
 `score_initial` should be greater than or equals to 10, and should be multiple of 10.
 
@@ -86,6 +90,8 @@ Field|Type|Null|Key|Default|Extra
 -|-|-|-|-|-
 user_id|int|NO|PRI|NULL|
 problem_id|int|NO|PRI|NULL|
+
+`user_id` is the the `FOREIGN KEY` of `user.id` and `problem_id` is the `FOREIGN KEY` of `problem.id`.
 
 If someone answer a problem which is not answered before, then a data will be added to this table.
 
