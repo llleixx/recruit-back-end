@@ -2,6 +2,8 @@
 
 Run this project:
 
+### with your host machine's mysql
+
 1. install dependencies (use `python -m venv` first)
 
     ```bash
@@ -32,6 +34,18 @@ Run this project:
 
     Open your browser and to this `http://127.0.0.1:8000/docs`
 
+### with docker
+
+1. modify `.env` file
+
+    You need to use your own `SECRET_KEY` and own `EMAIL`
+
+2. run docker
+
+    ```
+    docker compose up -d
+    ```
+
 ## Database
 
 ### users
@@ -39,12 +53,10 @@ Run this project:
 Field|Type|Null|Key|Default|Extra
 -|-|-|-|-|-
 id|int|NO|PRI|NULL|auto_increment
-name|varchar(16)|NO||NULL|
-email|varchar(30)|YES||NULL|
+name|varchar(16)|NO|UNI|NULL|
+email|varchar(30)|YES|UNI|NULL|
 password|varchar(60)|NO||NULL|
 permission|int|NO||NULL|
-
-`name` and `email` will be ensured unique by the logic of the code.
 
 `password` is hashed and verified by `CryptContext(schemes=["bcrypt"], deprecated="auto")` in `passlib.context`.
 
@@ -54,7 +66,7 @@ permission|int|NO||NULL|
 
 Field|Type|Null|Key|Default|Extra
 -|-|-|-|-|-
-id|int|NO|PRI|NULL|auto-increment
+id|int|NO|PRI|NULL|auto_increment
 owner_id|int|NO||NULL|
 name|varchar(30)|NO||NULL|
 description|varchar(2000)|YES||NULL|
